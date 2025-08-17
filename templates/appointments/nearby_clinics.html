@@ -1,0 +1,271 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Nearby Clinics - PulseCal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-map-marker-alt text-primary me-2"></i>Find Nearby Clinics</h2>
+            </div>
+
+            <!-- Location Input -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Your Location</h5>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <button id="getCurrentLocation" class="btn btn-primary">
+                                <i class="fas fa-location-arrow me-2"></i>Use Current Location
+                            </button>
+                            <span id="locationStatus" class="ms-3 text-muted"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <select id="radiusSelect" class="form-select">
+                                <option value="5">Within 5 km</option>
+                                <option value="10" selected>Within 10 km</option>
+                                <option value="20">Within 20 km</option>
+                                <option value="50">Within 50 km</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    <div id="map" style="height: 500px; width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Clinics List -->
+            <div class="row" id="clinicsList">
+                {% for clinic in clinics %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ clinic.name }}</h5>
+                            <p class="card-text">
+                                <i class="fas fa-map-marker-alt text-primary me-2"></i>{{ clinic.address }}
+                            </p>
+                            {% if clinic.phone %}
+                            <p class="card-text">
+                                <i class="fas fa-phone text-success me-2"></i>{{ clinic.phone }}
+                            </p>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-info">{{ clinic.get_org_type_display }}</span>
+                                {% if clinic.is_24_hours %}
+                                <span class="badge bg-success">24/7</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{% url 'appointments:clinic_details_map' clinic.id %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-info-circle me-1"></i>View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No clinics found. Use your current location to find nearby clinics.
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let map;
+let userMarker;
+let clinicMarkers = [];
+
+function initMap() {
+    // Default location (center of map)
+    const defaultLocation = { lat: 40.7128, lng: -74.0060 };
+    
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 12,
+        center: defaultLocation,
+        styles: [
+            {
+                featureType: 'poi.medical',
+                elementType: 'geometry',
+                stylers: [{ color: '#ffeaa7' }]
+            }
+        ]
+    });
+}
+
+function getCurrentLocation() {
+    const statusElement = document.getElementById('locationStatus');
+    statusElement.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Getting location...';
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                // Update map center
+                map.setCenter(userLocation);
+                
+                // Add user marker
+                if (userMarker) {
+                    userMarker.setMap(null);
+                }
+                userMarker = new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    title: 'Your Location',
+                    icon: {
+                        url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    }
+                });
+                
+                statusElement.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i>Location found';
+                
+                // Find nearby clinics
+                findNearbyClinics(userLocation.lat, userLocation.lng);
+            },
+            function(error) {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-2"></i>Location access denied';
+                console.error('Geolocation error:', error);
+            }
+        );
+    } else {
+        statusElement.innerHTML = '<i class="fas fa-times-circle text-danger me-2"></i>Geolocation not supported';
+    }
+}
+
+function findNearbyClinics(lat, lng) {
+    const radius = document.getElementById('radiusSelect').value;
+    
+    fetch('{% url "appointments:nearby_clinics" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: `latitude=${lat}&longitude=${lng}&radius=${radius}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayClinicsOnMap(data.clinics);
+        updateClinicsList(data.clinics);
+    })
+    .catch(error => {
+        console.error('Error finding clinics:', error);
+    });
+}
+
+function displayClinicsOnMap(clinics) {
+    // Clear existing markers
+    clinicMarkers.forEach(marker => marker.setMap(null));
+    clinicMarkers = [];
+    
+    // Add clinic markers
+    clinics.forEach(clinic => {
+        const marker = new google.maps.Marker({
+            position: { lat: parseFloat(clinic.latitude), lng: parseFloat(clinic.longitude) },
+            map: map,
+            title: clinic.name,
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+            }
+        });
+        
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div>
+                    <h6>${clinic.name}</h6>
+                    <p><i class="fas fa-map-marker-alt me-2"></i>${clinic.address}</p>
+                    <p><i class="fas fa-route me-2"></i>${clinic.distance} km away</p>
+                    ${clinic.phone ? `<p><i class="fas fa-phone me-2"></i>${clinic.phone}</p>` : ''}
+                    <a href="/clinic/${clinic.id}/details/" class="btn btn-primary btn-sm">View Details</a>
+                </div>
+            `
+        });
+        
+        marker.addListener('click', () => {
+            infoWindow.open(map, marker);
+        });
+        
+        clinicMarkers.push(marker);
+    });
+}
+
+function updateClinicsList(clinics) {
+    const clinicsListElement = document.getElementById('clinicsList');
+    
+    if (clinics.length === 0) {
+        clinicsListElement.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No clinics found within the selected radius.
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    clinics.forEach(clinic => {
+        html += `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">${clinic.name}</h5>
+                        <p class="card-text">
+                            <i class="fas fa-map-marker-alt text-primary me-2"></i>${clinic.address}
+                        </p>
+                        <p class="card-text">
+                            <i class="fas fa-route text-info me-2"></i>${clinic.distance} km away
+                        </p>
+                        ${clinic.phone ? `<p class="card-text"><i class="fas fa-phone text-success me-2"></i>${clinic.phone}</p>` : ''}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-info">${clinic.org_type}</span>
+                            ${clinic.is_24_hours ? '<span class="badge bg-success">24/7</span>' : ''}
+                        </div>
+                        <p class="card-text mt-2">
+                            <i class="fas fa-user-md text-primary me-2"></i>${clinic.doctors_count} doctors
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="/clinic/${clinic.id}/details/" class="btn btn-primary btn-sm">
+                            <i class="fas fa-info-circle me-1"></i>View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    clinicsListElement.innerHTML = html;
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('getCurrentLocation').addEventListener('click', getCurrentLocation);
+    document.getElementById('radiusSelect').addEventListener('change', function() {
+        if (userMarker) {
+            const position = userMarker.getPosition();
+            findNearbyClinics(position.lat(), position.lng());
+        }
+    });
+});
+</script>
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap"></script>
+{% endblock %}

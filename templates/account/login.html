@@ -1,0 +1,166 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+{% load socialaccount %}
+
+{% block title %}Sign In - PulseCal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row min-vh-100">
+        <!-- Left Side - Branding -->
+        <div class="col-lg-6 d-none d-lg-flex align-items-center justify-content-center bg-primary">
+            <div class="text-center text-white">
+                <div class="mb-4">
+                    <i class="fas fa-heartbeat fa-5x mb-3"></i>
+                    <h1 class="display-4 fw-bold">PulseCal</h1>
+                    <p class="lead">Enhanced Healthcare Management System</p>
+                </div>
+                <div class="row text-center mt-5">
+                    <div class="col-4">
+                        <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                        <p class="small">Smart Scheduling</p>
+                    </div>
+                    <div class="col-4">
+                        <i class="fas fa-user-md fa-2x mb-2"></i>
+                        <p class="small">Expert Care</p>
+                    </div>
+                    <div class="col-4">
+                        <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                        <p class="small">Secure Platform</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - Login Form -->
+        <div class="col-lg-6 d-flex align-items-center justify-content-center">
+            <div class="w-100" style="max-width: 400px;">
+                <div class="text-center mb-4">
+                    <div class="d-lg-none mb-3">
+                        <i class="fas fa-heartbeat fa-3x text-primary"></i>
+                        <h2 class="text-primary">PulseCal</h2>
+                    </div>
+                    <h3 class="fw-bold">Welcome Back</h3>
+                    <p class="text-muted">Sign in to your healthcare account</p>
+                </div>
+
+                <!-- Google Sign In Button -->
+                <div class="mb-4">
+                    {% get_providers as socialaccount_providers %}
+                    {% if socialaccount_providers %}
+                        {% for provider in socialaccount_providers %}
+                            {% if provider.id == "google" %}
+                                <a href="{% provider_login_url 'google' %}" class="btn btn-outline-danger w-100 py-3 mb-3">
+                                    <i class="fab fa-google me-2"></i>
+                                    Continue with Google
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="text-center mb-4">
+                    <span class="text-muted">or sign in with email</span>
+                </div>
+
+                <!-- Login Form -->
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <div><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</div>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.login.id_for_label }}" class="form-label">Email or Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="{{ form.login.id_for_label }}" 
+                                   name="{{ form.login.name }}" 
+                                   value="{{ form.login.value|default:'' }}"
+                                   placeholder="Enter your email or username"
+                                   required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="{{ form.password.id_for_label }}" 
+                                   name="{{ form.password.name }}"
+                                   placeholder="Enter your password"
+                                   required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                <i class="fas fa-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                            <label class="form-check-label" for="remember">
+                                Remember me
+                            </label>
+                        </div>
+                        <a href="{% url 'account_reset_password' %}" class="text-decoration-none">
+                            Forgot password?
+                        </a>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 mb-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                    </button>
+                </form>
+
+                <div class="text-center">
+                    <p class="text-muted">
+                        Don't have an account? 
+                        <a href="{% url 'account_signup' %}" class="text-decoration-none fw-bold">
+                            Sign up here
+                        </a>
+                    </p>
+                </div>
+
+                <!-- Security Notice -->
+                <div class="mt-4 p-3 bg-light rounded">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-shield-alt text-success me-2"></i>
+                        <small class="text-muted">
+                            Your data is protected with enterprise-grade security
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+    const toggleIcon = document.getElementById('toggleIcon');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+</script>
+{% endblock %}

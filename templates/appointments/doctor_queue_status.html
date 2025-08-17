@@ -1,0 +1,349 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Patient Queue - PulseCal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-users text-primary me-2"></i>Patient Queue</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary" onclick="refreshQueue()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
+                    </button>
+                    <button class="btn btn-outline-success" onclick="toggleOnDuty()">
+                        <i class="fas fa-power-off me-2"></i>
+                        {% if user.profile.on_duty %}Go Off Duty{% else %}Go On Duty{% endif %}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="waitingCount">{{ waiting_patients }}</h4>
+                                    <p class="mb-0">Waiting</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="consultationCount">{{ in_consultation }}</h4>
+                                    <p class="mb-0">In Consultation</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-user-md fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="completedCount">{{ done_patients }}</h4>
+                                    <p class="mb-0">Completed</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-check-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card {% if user.profile.on_duty %}bg-success{% else %}bg-secondary{% endif %} text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{% if user.profile.on_duty %}ON{% else %}OFF{% endif %}</h4>
+                                    <p class="mb-0">Duty Status</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-power-off fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Patient Queue -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Today's Patient Queue</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="queueContainer">
+                                {% if appointments %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Queue #</th>
+                                                <th>Patient</th>
+                                                <th>Appointment Time</th>
+                                                <th>Status</th>
+                                                <th>Wait Time</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="queueTableBody">
+                                            {% for appointment in appointments %}
+                                            <tr data-appointment-id="{{ appointment.id }}">
+                                                <td>
+                                                    <span class="badge bg-primary fs-6">#{{ forloop.counter }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="user-avatar me-3">
+                                                            {% if appointment.patient.profile.avatar %}
+                                                            <img src="{{ appointment.patient.profile.avatar.url }}" alt="Avatar" class="avatar-img">
+                                                            {% else %}
+                                                            <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div>
+                                                            <strong>{{ appointment.patient.get_full_name }}</strong>
+                                                            <br><small class="text-muted">{{ appointment.patient.profile.phone|default:"No phone" }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <strong>{{ appointment.appointment_date|time:"g:i A" }}</strong>
+                                                    <br><small class="text-muted">{{ appointment.appointment_date|date:"M d, Y" }}</small>
+                                                </td>
+                                                <td>
+                                                    {% if appointment.patient_status == 'waiting' %}
+                                                    <span class="badge bg-warning">Waiting</span>
+                                                    {% elif appointment.patient_status == 'in_consultation' %}
+                                                    <span class="badge bg-info">In Consultation</span>
+                                                    {% elif appointment.patient_status == 'done' %}
+                                                    <span class="badge bg-success">Completed</span>
+                                                    {% else %}
+                                                    <span class="badge bg-secondary">{{ appointment.get_patient_status_display }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="wait-time" data-appointment-time="{{ appointment.appointment_date|date:'c' }}">
+                                                        Calculating...
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        {% if appointment.patient_status == 'waiting' %}
+                                                        <button class="btn btn-success" onclick="startConsultation({{ appointment.id }})">
+                                                            <i class="fas fa-play me-1"></i>Start
+                                                        </button>
+                                                        {% elif appointment.patient_status == 'in_consultation' %}
+                                                        <button class="btn btn-primary" onclick="completeConsultation({{ appointment.id }})">
+                                                            <i class="fas fa-check me-1"></i>Complete
+                                                        </button>
+                                                        {% endif %}
+                                                        <button class="btn btn-outline-info" onclick="viewPatientDetails({{ appointment.patient.id }})">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No patients in queue</h5>
+                                    <p class="text-muted">
+                                        {% if is_receptionist %}
+                                        No patients are currently in the queue. New appointments will appear here automatically.
+                                        {% else %}
+                                            {% if user.profile.on_duty %}
+                                            No patients are currently waiting. New appointments will appear here automatically.
+                                            {% else %}
+                                            You are currently off duty. Turn on duty status to see patient queue.
+                                            {% endif %}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Today's Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h4 class="text-primary">{{ total_appointments }}</h4>
+                                    <small class="text-muted">Total</small>
+                                </div>
+                                <div class="col-4">
+                                    <h4 class="text-success">{{ completed_appointments }}</h4>
+                                    <small class="text-muted">Completed</small>
+                                </div>
+                                <div class="col-4">
+                                    <h4 class="text-warning">{{ pending_appointments }}</h4>
+                                    <small class="text-muted">Pending</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Average Times</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h4 class="text-info">15 min</h4>
+                                    <small class="text-muted">Consultation</small>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-warning">8 min</h4>
+                                    <small class="text-muted">Wait Time</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshQueue() {
+    location.reload();
+}
+
+function toggleOnDuty() {
+    // Implementation for toggling duty status
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "appointments:dashboard" %}';
+    
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    
+    const toggleDuty = document.createElement('input');
+    toggleDuty.type = 'hidden';
+    toggleDuty.name = 'toggle_duty';
+    toggleDuty.value = 'true';
+    
+    form.appendChild(csrfToken);
+    form.appendChild(toggleDuty);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function startConsultation(appointmentId) {
+    updateAppointmentStatus(appointmentId, 'in_consultation', 'Starting consultation...');
+}
+
+function completeConsultation(appointmentId) {
+    updateAppointmentStatus(appointmentId, 'done', 'Completing consultation...');
+}
+
+function updateAppointmentStatus(appointmentId, status, message) {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + message;
+    button.disabled = true;
+    
+    fetch(`{% url 'appointments:update_status' 0 %}`.replace('0', appointmentId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: `patient_status=${status}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating status: ' + (data.error || 'Unknown error'));
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating status');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function viewPatientDetails(patientId) {
+    // Implementation for viewing patient details
+    window.open(`/patient/${patientId}/details/`, '_blank');
+}
+
+// Calculate wait times
+function updateWaitTimes() {
+    const waitTimeElements = document.querySelectorAll('.wait-time');
+    const now = new Date();
+    
+    waitTimeElements.forEach(element => {
+        const appointmentTime = new Date(element.dataset.appointmentTime);
+        const diffMs = now - appointmentTime;
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMins > 0) {
+            element.textContent = `${diffMins} min late`;
+            element.className = 'wait-time text-danger';
+        } else if (diffMins > -15) {
+            element.textContent = `${Math.abs(diffMins)} min early`;
+            element.className = 'wait-time text-success';
+        } else {
+            element.textContent = `${Math.abs(diffMins)} min early`;
+            element.className = 'wait-time text-muted';
+        }
+    });
+}
+
+// Update wait times every minute
+document.addEventListener('DOMContentLoaded', function() {
+    updateWaitTimes();
+    setInterval(updateWaitTimes, 60000);
+});
+
+// Auto-refresh every 2 minutes
+setInterval(function() {
+    refreshQueue();
+}, 120000);
+</script>
+{% endblock %}

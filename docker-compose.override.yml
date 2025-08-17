@@ -1,0 +1,39 @@
+# Development overrides for docker-compose.yml
+# This file is automatically loaded in development
+
+version: '3.8'
+
+services:
+  web:
+    ports:
+      - "8000:8000"  # Expose port for development
+    environment:
+      - DEBUG=True
+      - ENVIRONMENT=development
+    volumes:
+      - .:/app  # Mount source code for development
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  db:
+    ports:
+      - "5432:5432"  # Expose port for development access
+
+  redis:
+    ports:
+      - "6379:6379"  # Expose port for development access
+
+  celery:
+    volumes:
+      - .:/app  # Mount source code for development
+
+  celery-beat:
+    volumes:
+      - .:/app  # Mount source code for development
+
+# Remove nginx in development
+  nginx:
+    profiles:
+      - production

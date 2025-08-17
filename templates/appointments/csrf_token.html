@@ -1,0 +1,6 @@
+<!-- CSRF Token Template Fragment -->
+{% csrf_token %}
+<script>
+// Make CSRF token available globally
+window.csrfToken = '{{ csrf_token }}';
+</script>

@@ -1,0 +1,164 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+{% load form_extras %}
+{% block title %}Edit Profile - Clinic Appointment System{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h3 class="fw-bold mb-3 text-center">Edit Profile</h3>
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-success">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3 text-center">
+                            {% if profile.avatar %}
+                                <img src="{{ profile.avatar.url }}" alt="Avatar" class="rounded-circle shadow mb-2" style="width: 100px; height: 100px; object-fit: cover;">
+                            {% else %}
+                                <img src="{% static 'img/default-avatar.png' %}" alt="Avatar" class="rounded-circle shadow mb-2" style="width: 100px; height: 100px; object-fit: cover;">
+                            {% endif %}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Role</label>
+                                    {{ form.role }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Organization</label>
+                                    {{ form.organization }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Avatar</label>
+                            {{ form.avatar }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            {{ form.phone }}
+                        </div>
+                        
+                        {% if user.profile.role == 'doctor' %}
+                            <hr class="my-4">
+                            <h5 class="fw-bold mb-3">Professional Information</h5>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Specialization</label>
+                                {{ form.specialization }}
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label class="form-label">Qualification</label>
+                                        {{ form.qualification }}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <div class="form-check mt-4">
+                                            {{ form.show_qualification }}
+                                            <label class="form-check-label" for="{{ form.show_qualification.id_for_label }}">
+                                                Show publicly
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label class="form-label">Years of Experience</label>
+                                        {{ form.experience_years }}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <div class="form-check mt-4">
+                                            {{ form.show_experience }}
+                                            <label class="form-check-label" for="{{ form.show_experience.id_for_label }}">
+                                                Show publicly
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Bio</label>
+                                {{ form.bio }}
+                            </div>
+                            
+                            <hr class="my-4">
+                            <h5 class="fw-bold mb-3">Working Hours</h5>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-3"><label class="form-label fw-bold">Monday</label></div>
+                                <div class="col-md-3">{{ form.monday_start }}</div>
+                                <div class="col-md-3">{{ form.monday_end }}</div>
+                                <div class="col-md-3"><div class="form-check">{{ form.monday_closed }} <label class="form-check-label small">Closed</label></div></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3"><label class="form-label fw-bold">Tuesday</label></div>
+                                <div class="col-md-3">{{ form.tuesday_start }}</div>
+                                <div class="col-md-3">{{ form.tuesday_end }}</div>
+                                <div class="col-md-3"><div class="form-check">{{ form.tuesday_closed }} <label class="form-check-label small">Closed</label></div></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3"><label class="form-label fw-bold">Wednesday</label></div>
+                                <div class="col-md-3">{{ form.wednesday_start }}</div>
+                                <div class="col-md-3">{{ form.wednesday_end }}</div>
+                                <div class="col-md-3"><div class="form-check">{{ form.wednesday_closed }} <label class="form-check-label small">Closed</label></div></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3"><label class="form-label fw-bold">Thursday</label></div>
+                                <div class="col-md-3">{{ form.thursday_start }}</div>
+                                <div class="col-md-3">{{ form.thursday_end }}</div>
+                                <div class="col-md-3"><div class="form-check">{{ form.thursday_closed }} <label class="form-check-label small">Closed</label></div></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3"><label class="form-label fw-bold">Friday</label></div>
+                                <div class="col-md-3">{{ form.friday_start }}</div>
+                                <div class="col-md-3">{{ form.friday_end }}</div>
+                                <div class="col-md-3"><div class="form-check">{{ form.friday_closed }} <label class="form-check-label small">Closed</label></div></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3"><label class="form-label fw-bold">Saturday</label></div>
+                                <div class="col-md-3">{{ form.saturday_start }}</div>
+                                <div class="col-md-3">{{ form.saturday_end }}</div>
+                                <div class="col-md-3"><div class="form-check">{{ form.saturday_closed }} <label class="form-check-label small">Closed</label></div></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3"><label class="form-label fw-bold">Sunday</label></div>
+                                <div class="col-md-3">{{ form.sunday_start }}</div>
+                                <div class="col-md-3">{{ form.sunday_end }}</div>
+                                <div class="col-md-3"><div class="form-check">{{ form.sunday_closed }} <label class="form-check-label small">Closed</label></div></div>
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                <label class="form-label">Specialization</label>
+                                {{ form.specialization }}
+                            </div>
+                        {% endif %}
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <a href="{% url 'appointments:profile' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

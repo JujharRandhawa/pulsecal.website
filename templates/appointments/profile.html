@@ -1,0 +1,79 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+{% block title %}Profile - Clinic Appointment System{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        {% if profile.avatar %}
+                            <img src="{{ profile.avatar.url }}" alt="Avatar" class="rounded-circle shadow" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <img src="{% static 'img/default-avatar.png' %}" alt="Avatar" class="rounded-circle shadow" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% endif %}
+                    </div>
+                    <h3 class="fw-bold mb-1">{{ profile.user.get_full_name|default:profile.user.username }}</h3>
+                    <div class="mb-2 text-muted">{{ profile.get_role_display }}</div>
+                    
+                    {% if profile.role == 'doctor' %}
+                        <div class="mb-3">
+                            {% if profile.specialization %}
+                                <div class="mb-2 small"><i class="fas fa-user-md me-1"></i>{{ profile.specialization }}</div>
+                            {% endif %}
+                            {% if profile.qualification and profile.show_qualification %}
+                                <div class="mb-2 small"><i class="fas fa-graduation-cap me-1"></i>{{ profile.qualification }}</div>
+                            {% endif %}
+                            {% if profile.experience_years and profile.show_experience %}
+                                <div class="mb-2 small"><i class="fas fa-clock me-1"></i>{{ profile.experience_years }} years experience</div>
+                            {% endif %}
+                            <div class="mb-2 small"><i class="fas fa-briefcase me-1"></i>{{ profile.get_status_display }}</div>
+                        </div>
+                        
+                        {% if profile.bio %}
+                            <div class="mb-3 text-start">
+                                <h6 class="fw-bold">About</h6>
+                                <p class="small text-muted">{{ profile.bio }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if profile.working_hours %}
+                            <div class="mb-3 text-start">
+                                <h6 class="fw-bold">Working Hours</h6>
+                                <div class="row">
+                                    {% for day, hours in profile.working_hours.items %}
+                                        <div class="col-6 mb-1">
+                                            <small class="text-muted">
+                                                <strong>{{ day|title }}:</strong>
+                                                {% if hours.closed %}
+                                                    Closed
+                                                {% elif hours.start and hours.end %}
+                                                    {{ hours.start }} - {{ hours.end }}
+                                                {% else %}
+                                                    Not set
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        {% if profile.organization %}
+                            <div class="mb-2 small"><i class="fas fa-hospital-alt me-1"></i>{{ profile.organization.name }}</div>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if profile.phone %}
+                        <div class="mb-2 small"><i class="fas fa-phone me-1"></i>{{ profile.phone }}</div>
+                    {% endif %}
+                    <div class="mb-2 small"><i class="fas fa-envelope me-1"></i>{{ profile.user.email }}</div>
+                    
+                    <a href="{% url 'appointments:edit_profile' %}" class="btn btn-outline-primary mt-3"><i class="fas fa-edit me-1"></i>Edit Profile</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
